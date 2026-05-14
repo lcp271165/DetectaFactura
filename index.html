@@ -1,0 +1,55 @@
+/**
+* ESTE SCRIPT DEBE IR EN GOOGLE APPS SCRIPT (Extensions -> Apps Script en Google Sheets)
+* * 1. Pega este código.
+* 2. Clic en "Implementar" (Deploy) -> "Nueva Implementación" -> "Aplicación Web".
+* 3. Configurar: Ejecutar como "Yo" y Acceso "Cualquier persona".
+* 4. Copiar la URL generada y pegarla en la constante GOOGLE_SCRIPTS_URL del HTML.
+*/
+
+function doPost(e) {
+// Manejo de errores estructurado (On Error equivalente)
+try {
+// 1. Parsear el JSON recibido desde el Frontend
+const data = JSON.parse(e.postData.contents);
+
+// 2. Conectar a la hoja activa
+const ss = SpreadsheetApp.getActiveSpreadsheet();
+const sheet = ss.getActiveSheet();
+
+// 3. Crear timestamp y array de fila
+const timestamp = new Date();
+const rowData = [
+timestamp,
+data.proveedor,
+data.ruc,
+data.proveedor,
+data.fecha,
+data.impuesto,
+data.total
+];
+
+// 4. Agregar fila a la base de datos (Optimizado: una sola llamada I/O)
+sheet.appendRow(rowData);
+
+// 5. Retornar éxito (Evita errores CORS en el frontend)
+return ContentService
+.createTextOutput(JSON.stringify({ "status": "success", "row": sheet.getLastRow() }))
+.setMimeType(ContentService.MimeType.JSON);
+
+} catch(error) {
+// RCA: Devolver el error exacto para depuración
+return ContentService
+.createTextOutput(JSON.stringify({ "status": "error", "message": error.toString() }))
+.setMimeType(ContentService.MimeType.JSON);
+}
+}
+
+// Requerido para manejar solicitudes OPTIONS previas (CORS preflight)
+function doOptions(e) {
+const headers = {
+"Access-Control-Allow-Origin": "*",
+"Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+"Access-Control-Allow-Headers": "Content-Type"
+};
+return ContentService.createTextOutput("").setHeaders(headers);
+}
