@@ -139,9 +139,13 @@
 
             const prompt = `Analiza la imagen de esta factura o recibo. Extrae la siguiente información y devuélvela ESTRICTAMENTE en formato JSON:
             {
-                "proveedor": "Nombre de la empresa o persona que emite",
+                "documento": "Número de documento del recibo o factura",
                 "fecha": "Fecha de emisión en formato YYYY-MM-DD",
-                "impuesto": "Monto del impuesto (solo número, usar punto decimal)",
+                "concepto": "según los artículos comprados, definir un rubro de la compra",
+                "ruc": "RUC de la empresa o persona que emite",
+                "proveedor": "Nombre de la empresa o persona que emite",
+                "subtotal": "Monto del subtotal (solo número, usar punto decimal)",
+                "impuesto": "Monto del igv o impuesto (solo número, usar punto decimal)",
                 "total": "Monto total a pagar (solo número, usar punto decimal)"
             }
             Si algún dato no se encuentra, devuelve null para ese campo. No incluyas markdown, solo el JSON puro.`;
@@ -176,8 +180,10 @@
                     const extractedData = JSON.parse(extractedText);
 
                     // Llenar formulario
+                    document.getElementById('docNumber').value = extractedData.documento || '';
                     document.getElementById('provName').value = extractedData.proveedor || '';
                     document.getElementById('invDate').value = extractedData.fecha || '';
+                    document.getElementById('concept').value = extractedData.concepto || '';
                     document.getElementById('invTax').value = extractedData.impuesto || '';
                     document.getElementById('invTotal').value = extractedData.total || '';
 
