@@ -15,7 +15,7 @@
         <!-- Header -->
         <header class="bg-blue-600 text-white p-4 shadow-md flex items-center justify-between">
             <h1 class="text-xl font-bold flex items-center gap-2">
-                <i data-lucide="receipt"></i> Smart Invoice
+                <i data-lucide="receipt"></i> AND Detecta Factura
             </h1>
         </header>
 
@@ -56,17 +56,44 @@
             <form id="resultForm" class="hidden flex flex-col gap-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <h3 class="font-bold text-gray-700 border-b pb-2 mb-2">Datos Extraídos</h3>
 
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Proveedor</label>
-                    <input type="text" id="provName"
-                        class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Fecha</label>
-                    <input type="date" id="invDate"
-                        class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
                 <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Documento</label>
+                        <input type="text" id="invDoc" placeholder="Ej. F001-123"
+                            class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Fecha</label>
+                        <input type="date" id="invDate"
+                            class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RUC</label>
+                        <input type="text" id="provRuc"
+                            class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div class="flex-[2]">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Proveedor</label>
+                        <input type="text" id="provName"
+                            class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Concepto General</label>
+                    <input type="text" id="invConcept" placeholder="Ej. Materiales de oficina"
+                        class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Subtotal</label>
+                        <input type="number" step="0.01" id="invSubtotal"
+                            class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
                     <div class="flex-1">
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Impuesto</label>
                         <input type="number" step="0.01" id="invTax"
@@ -134,19 +161,28 @@
             loadingText.textContent = "Extrayendo datos de la factura...";
 
             // API Key inyectada por el entorno (o reemplazada en producción)
-            const apiKey = "";
+            const apiKey = "AIzaSyBtik7CaVJ9fjBVcWMalu6gXckktIec4dU"; // ⚠️ DEBES INSERTAR TU API KEY AQUÍ PARA QUE FUNCIONE EN GITHUB
+
+            // RCA Fix 1: Validación explícita de API Key
+            if (!apiKey || apiKey.trim() === "") {
+                alert("Error de Configuración: Falta la API Key de Gemini. Por favor, edita el archivo index.html e inserta tu clave.");
+                loadingState.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                return;
+            }
+
             const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
             const prompt = `Analiza la imagen de esta factura o recibo. Extrae la siguiente información y devuélvela ESTRICTAMENTE en formato JSON:
             {
-                "documento": "Número de documento del recibo o factura",
+                "documento": "Tipo y número de documento (ej. Factura F001-1234)",
                 "fecha": "Fecha de emisión en formato YYYY-MM-DD",
-                "concepto": "según los artículos comprados, definir un rubro de la compra",
-                "ruc": "RUC de la empresa o persona que emite",
+                "concepto": "Descripción muy breve o concepto general de la compra",
+                "ruc": "RUC, NIT o número de identificación fiscal del emisor",
                 "proveedor": "Nombre de la empresa o persona que emite",
-                "subtotal": "Monto del subtotal (solo número, usar punto decimal)",
-                "impuesto": "Monto del igv o impuesto (solo número, usar punto decimal)",
-                "total": "Monto total a pagar (solo número, usar punto decimal)"
+                "subtotal": "Monto antes de impuestos (solo número)",
+                "impuesto": "Monto del impuesto (solo número)",
+                "total": "Monto total a pagar (solo número)"
             }
             Si algún dato no se encuentra, devuelve null para ese campo. No incluyas markdown, solo el JSON puro.`;
 
@@ -179,11 +215,13 @@
                 if (extractedText) {
                     const extractedData = JSON.parse(extractedText);
 
-                    // Llenar formulario
-                    document.getElementById('docNumber').value = extractedData.documento || '';
-                    document.getElementById('provName').value = extractedData.proveedor || '';
+                    // Llenar formulario con los 8 campos
+                    document.getElementById('invDoc').value = extractedData.documento || '';
                     document.getElementById('invDate').value = extractedData.fecha || '';
-                    document.getElementById('concept').value = extractedData.concepto || '';
+                    document.getElementById('provRuc').value = extractedData.ruc || '';
+                    document.getElementById('provName').value = extractedData.proveedor || '';
+                    document.getElementById('invConcept').value = extractedData.concepto || '';
+                    document.getElementById('invSubtotal').value = extractedData.subtotal || '';
                     document.getElementById('invTax').value = extractedData.impuesto || '';
                     document.getElementById('invTotal').value = extractedData.total || '';
 
@@ -209,28 +247,29 @@
             btn.disabled = true;
 
             const payload = {
-                proveedor: document.getElementById('provName').value,
+                documento: document.getElementById('invDoc').value,
                 fecha: document.getElementById('invDate').value,
+                concepto: document.getElementById('invConcept').value,
+                ruc: document.getElementById('provRuc').value,
+                proveedor: document.getElementById('provName').value,
+                subtotal: document.getElementById('invSubtotal').value,
                 impuesto: document.getElementById('invTax').value,
                 total: document.getElementById('invTotal').value
             };
 
-            // Aquí debes colocar la URL del Web App de Google Apps Script
+            // URL del Web App de Google Apps Script
             const GOOGLE_SCRIPTS_URL = "https://script.google.com/macros/s/AKfycbwCIYm_rYaPcMgk928MMReqvv9pk3jNfYqGaByAR1JA9Vm-AqLDfeval6wO2bhRQSc/exec";
 
             try {
-                /*
-                // Código real de envío (Comentado para que el preview no falle sin URL)
-                const response = await fetch(GOOGLE_SCRIPTS_URL, {
+                // RCA Fix 2: Evasión de bloqueo CORS en GitHub Pages
+                // Se utiliza 'text/plain' para evitar la petición Preflight (OPTIONS)
+                await fetch(GOOGLE_SCRIPTS_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // Evita problemas de CORS al enviar a G-Script
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8'
+                    },
                     body: JSON.stringify(payload)
                 });
-                */
-
-                // Simulación de delay de red
-                await new Promise(resolve => setTimeout(resolve, 1000));
 
                 alert('¡Factura guardada correctamente en la hoja de cálculo!');
 
